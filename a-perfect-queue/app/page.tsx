@@ -1,7 +1,7 @@
 "use client";
 import { button as buttonStyles } from "@nextui-org/theme";
 import { Input } from "@nextui-org/input";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense  } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -9,6 +9,19 @@ import { title, subtitle } from "@/components/primitives";
 import SuccessMessageCard from "@/components/successMessageCard";
 
 export default function Home() {
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+
+
+
+
+function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -22,6 +35,8 @@ export default function Home() {
 
   // Retrieve stored values from localStorage on component mount
   useEffect(() => {
+    if (typeof window === "undefined") return; // Ensure this only runs on the client side
+
     const storedNumberOfSongs = localStorage.getItem("numberOfSongs");
     const storedPlaylistName = localStorage.getItem("playlistName");
 
@@ -35,6 +50,8 @@ export default function Home() {
 
   // Get access token from URL query parameters
   useEffect(() => {
+    if (typeof window === "undefined") return; // Ensure this only runs on the client side
+
     const token = searchParams.get("access_token");
 
     // Check if playlist has already been created by this token
