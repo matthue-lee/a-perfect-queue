@@ -178,7 +178,7 @@ function HomeContent() {
         </span>
         <div className={subtitle({ class: "mt-4" })}>
           Just enter how many songs back to look, what you want to call your
-          playlist, and we&#39ll do the rest
+          playlist, and we&#39;ll do the rest
         </div>
         <div className="flex w-full md:flex-nowrap gap-4">
           <Input
