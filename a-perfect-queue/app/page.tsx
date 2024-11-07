@@ -67,8 +67,14 @@ function HomeContent() {
       // Remove the token from the URL for cleaner appearance
       window.history.replaceState({}, document.title, "/");
 
-      // Create the playlist automatically
+    // Function to add delay and create playlist
+    const createPlaylistWithDelay = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
       handleCreatePlaylist(token);
+    };
+
+    // Call the function with the delay
+    createPlaylistWithDelay();
     }
   }, [searchParams]);
 
