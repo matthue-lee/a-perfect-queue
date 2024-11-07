@@ -1,7 +1,7 @@
 "use client";
 import { button as buttonStyles } from "@nextui-org/theme";
 import { Input } from "@nextui-org/input";
-import { useEffect, useState, Suspense  } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -9,17 +9,12 @@ import { title, subtitle } from "@/components/primitives";
 import SuccessMessageCard from "@/components/successMessageCard";
 
 export default function Home() {
-
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <HomeContent />
     </Suspense>
   );
 }
-
-
-
-
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -32,6 +27,9 @@ function HomeContent() {
     type: "success" | "error";
   } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // New loading state
+
+  // Ref to prevent multiple playlist creation
+  const isPlaylistCreationTriggered = useRef(false);
 
   // Retrieve stored values from localStorage on component mount
   useEffect(() => {
@@ -48,7 +46,7 @@ function HomeContent() {
     }
   }, []);
 
-  // Get access token from URL query parameters
+  // Get access token from URL query parameters and create playlist
   useEffect(() => {
     if (typeof window === "undefined") return; // Ensure this only runs on the client side
 
@@ -57,24 +55,23 @@ function HomeContent() {
     // Check if playlist has already been created by this token
     const playlistCreationLock = localStorage.getItem("playlistCreationLock");
 
-    if (token && playlistCreationLock !== token) {
+    if (token && playlistCreationLock !== token && !isPlaylistCreationTriggered.current) {
       // Set lock to prevent duplicate creation
       localStorage.setItem("playlistCreationLock", token);
-
-      // Set the access token in state
       setAccessToken(token);
+      isPlaylistCreationTriggered.current = true;
 
-      // Remove the token from the URL for cleaner appearance
-      window.history.replaceState({}, document.title, "/");
+      // Function to add delay and create playlist
+      const createPlaylistWithDelay = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
+        await handleCreatePlaylist(token);
+        
+        // Remove the token from the URL for cleaner appearance
+        window.history.replaceState({}, document.title, "/");
+      };
 
-    // Function to add delay and create playlist
-    const createPlaylistWithDelay = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
-      handleCreatePlaylist(token);
-    };
-
-    // Call the function with the delay
-    createPlaylistWithDelay();
+      // Call the function with the delay
+      createPlaylistWithDelay();
     }
   }, [searchParams]);
 
@@ -83,26 +80,12 @@ function HomeContent() {
     // Store input values in localStorage before redirecting for authorization
     localStorage.setItem("numberOfSongs", numberOfSongs.toString());
     localStorage.setItem("playlistName", playlistName);
-    router.push("/api/spotify-auth");
-  };
-
-  useEffect(() => {
-    const token = searchParams.get("access_token");
-
-    if (token) {
-      setAccessToken(token);
-      // Optionally remove the token from the URL for a cleaner look
-      window.history.replaceState({}, document.title, "/");
-
-      // After getting the access token, create the playlist automatically
-      handleCreatePlaylist(token);
-    }
-  }, [searchParams]);
+    window.location.href = "/api/spotify-auth";
+    };
 
   const handleCreatePlaylist = async (token: string) => {
     if (!token) {
       alert("Access token not found. Please authenticate with Spotify.");
-
       return;
     }
 
@@ -112,13 +95,11 @@ function HomeContent() {
 
     if (!name) {
       alert("Please enter a playlist name.");
-
       return;
     }
 
     if (!number || isNaN(number)) {
       alert("Please enter a valid number of songs.");
-
       return;
     }
 
@@ -140,7 +121,6 @@ function HomeContent() {
       });
 
       if (response.status === 200) {
-        // alert('Playlist created successfully!');
         setMessage({ text: "Playlist created successfully!", type: "success" });
       } else {
         setMessage({
@@ -160,12 +140,7 @@ function HomeContent() {
           type: "error",
         });
       }
-      setMessage({
-        text: "Failed to create playlist. Please try again.",
-        type: "error",
-      });
     } finally {
-      // Set loading state to false after request completes
       setIsLoading(false);
     }
   };
